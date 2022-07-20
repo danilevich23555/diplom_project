@@ -19,4 +19,3 @@ def file_data_yaml():
     return data_yaml_import
 
 
-print(file_data_yaml()[0])

@@ -51,8 +51,6 @@ class RegisterAccount(APIView):
     def post(self, request, *args, **kwargs):
 
         # проверяем обязательные аргументы
-        res=request.data
-        print(res)
         if {'first_name', 'last_name', 'email', 'password', 'position'}.issubset(request.data):
             errors = {}
 
@@ -93,13 +91,10 @@ class LoginAccount(APIView):
     def post(self, request, *args, **kwargs):
 
         if {'email', 'password'}.issubset(request.data):
-            print(request)
+
             username=request.data['email']
             password=request.data['password']
-            print(username, password)
             user = authenticate(request, username=username, password=password)
-            print(user)
-            print(request.data)
             if user is not None:
                 if user.is_active:
                     token, _ = Token.objects.get_or_create(user=user)
