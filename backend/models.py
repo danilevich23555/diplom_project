@@ -76,7 +76,16 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
-
+    username_validator = UnicodeUsernameValidator()
+    username = models.CharField(
+        _('username'),
+        max_length=150,
+        help_text=_('Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.'),
+        validators=[username_validator],
+        error_messages={
+            'unique': _("A user with that username already exists."),
+        },
+    )
     def __str__(self):
         return f'{self.first_name} {self.last_name}'
 
@@ -91,7 +100,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 class Shop(models.Model):
     name = models.CharField(max_length=50, verbose_name='Название')
     # url = models.URLField(verbose_name='Ссылка', null=True, blank=True)
-    # state = models.BooleanField(verbose_name='статус получения заказов', default=True)
+    state = models.BooleanField(verbose_name='статус получения заказов', default=True)
 
     # filename
 
@@ -236,3 +245,41 @@ class Contact(models.Model):
     def __str__(self):
         return f'{self.city} {self.street} {self.house}'
 
+
+class ConfirmEmailToken(models.Model):
+    class Meta:
+        verbose_name = 'Токен подтверждения Email'
+        verbose_name_plural = 'Токены подтверждения Email'
+
+    @staticmethod
+    def generate_key():
+        """ generates a pseudo random code using os.urandom and binascii.hexlify """
+        return get_token_generator().generate_token()
+
+    user = models.ForeignKey(
+        User,
+        related_name='confirm_email_tokens',
+        on_delete=models.CASCADE,
+        verbose_name=_("The User which is associated to this password reset token")
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("When was this token generated")
+    )
+
+    # Key field, though it is not the primary key of the model
+    key = models.CharField(
+        _("Key"),
+        max_length=64,
+        db_index=True,
+        unique=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = self.generate_key()
+        return super(ConfirmEmailToken, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return "Password reset token for user {user}".format(user=self.user)
